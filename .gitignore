@@ -61,6 +61,11 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# Study Agent specific
+study_agent.db
+study_agent.db-journal
+.env
+
 # Flask stuff:
 instance/
 .webassets-cache
