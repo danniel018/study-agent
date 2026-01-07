@@ -38,14 +38,51 @@ This project follows clean architecture principles with clear separation of conc
 
 ## 📋 Current Status
 
-**Status**: 🔧 Design Phase - **Step 1 Complete**
+**Status**: 🚀 **MVP Implementation In Progress**
 
-This repository currently contains:
-- ✅ Comprehensive system design documentation
-- ✅ Detailed project structure proposal
-- ✅ WhatsApp integration guide
-- ✅ Questions and clarifications document
-- ⏳ Implementation pending (awaiting clarifications)
+### Implemented Features
+
+✅ **Core Architecture**
+- Configuration management with Pydantic settings
+- SQLAlchemy database models (7 tables)
+- Async database engine with connection pooling
+- Clean architecture with separation of concerns
+
+✅ **Infrastructure Layer**
+- Gemini 2.0+ client for quiz generation and answer evaluation
+- GitHub API client for repository content fetching
+- User, Repository, and Topic repositories with CRUD operations
+
+✅ **Application Layer**
+- GitHub service for repository syncing
+- Study manager with spaced repetition algorithm
+- Quiz generation and answer evaluation
+- Performance metrics tracking
+
+✅ **Presentation Layer**
+- Telegram bot with aiogram 3.x
+- Command handlers: `/start`, `/help`, `/testquiz`
+- User registration with default schedule configuration
+
+✅ **Testing**
+- Unit tests for utilities and repositories
+- Test fixtures and configuration
+- Async test support with pytest-asyncio
+
+### In Progress
+
+🚧 Additional command handlers (addrepo, study, stats, schedule)
+🚧 Quiz conversation flow with FSM states
+🚧 Scheduler service with 5-minute test mode
+🚧 Integration tests
+🚧 Test coverage improvement to 90%
+
+### Coming Soon
+
+📅 Private repository support with GitHub PAT
+📅 Advanced statistics and progress visualization
+📅 Goal setting and achievements
+📅 WhatsApp integration (see [WHATSAPP_INTEGRATION.md](WHATSAPP_INTEGRATION.md))
 
 ### Design Documents
 
@@ -99,19 +136,13 @@ As per the agentic execution plan, we are following a structured approach:
 
 - **[WHATSAPP_INTEGRATION.md](WHATSAPP_INTEGRATION.md)**: Step-by-step guide for adding WhatsApp support using Twilio API
 
-## 🚀 Getting Started (Planned)
-
-> **Note**: Implementation is pending. This section describes the planned setup process.
+## 🚀 Quick Start
 
 ### Prerequisites
 
-```bash
-# Python 3.14 or higher
-python --version
-
-# Git
-git --version
-```
+- Python 3.11 or higher
+- Telegram account
+- Google AI Studio account (for Gemini API key)
 
 ### Installation
 
@@ -126,9 +157,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Install development dependencies
-pip install -r requirements-dev.txt
+pip install -e .
 ```
 
 ### Configuration
@@ -137,50 +166,49 @@ pip install -r requirements-dev.txt
 # Copy environment template
 cp .env.example .env
 
-# Edit .env and add your API keys
-# - TELEGRAM_BOT_TOKEN (from @BotFather)
+# Edit .env and add your API keys:
+# - TELEGRAM_BOT_TOKEN (from @BotFather on Telegram)
 # - GEMINI_API_KEY (from Google AI Studio)
 ```
 
-### Database Setup
+### Initialize & Run
 
 ```bash
 # Initialize database
 python scripts/init_db.py
 
-# Run migrations (if any)
-alembic upgrade head
-```
-
-### Running the Bot
-
-```bash
 # Start the bot
 python -m study_agent
 ```
 
-### Running Tests
+### Test the Bot
 
-```bash
-# Run all tests with coverage
-pytest
+1. Open Telegram
+2. Search for your bot
+3. Send `/start` to begin
+4. Use `/testquiz` for a quick test with mock questions
 
-# Run specific test file
-pytest tests/unit/test_services/test_study_manager.py
+📚 **For detailed setup instructions, see [DEVELOPMENT.md](DEVELOPMENT.md)**
 
-# Run with verbose output
-pytest -v
-```
-
-## 📚 How It Works (Planned)
+## 📚 How It Works
 
 1. **Setup**: User adds GitHub repository URLs containing study materials (markdown files)
-2. **Sync**: Bot fetches and parses topics from repositories
-3. **Schedule**: User configures preferred study schedule
+2. **Sync**: Bot fetches and parses all content from repositories
+3. **Schedule**: User configures preferred study schedule (default: daily at 9 AM)
 4. **Quiz**: Bot generates personalized quizzes using Gemini AI
-5. **Assess**: User answers questions, receives immediate feedback
+5. **Assess**: User answers questions, receives immediate feedback with scores
 6. **Track**: System tracks performance and schedules future reviews using spaced repetition
 7. **Improve**: Over time, the system optimizes review intervals based on retention patterns
+
+### Spaced Repetition Algorithm
+
+The bot uses a simple but effective spaced repetition algorithm:
+
+- **Excellent performance (≥80%)**: Next review in 2.5× previous interval
+- **Good performance (60-80%)**: Next review in 1.5× previous interval  
+- **Needs work (<60%)**: Reset to daily review
+
+Example progression: Day 1 → Day 2 → Day 4 → Day 9 → Day 21 → Day 51...
 
 ## 🎨 Design Principles
 
