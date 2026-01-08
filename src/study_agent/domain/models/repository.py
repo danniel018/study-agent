@@ -2,13 +2,12 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
 class Repository:
     """Repository entity representing a GitHub repository."""
-    
+
     id: int
     user_id: int
     repo_url: str
@@ -16,4 +15,4 @@ class Repository:
     repo_name: str
     is_active: bool
     created_at: datetime
-    last_synced_at: Optional[datetime] = None
+    last_synced_at: datetime | None = None

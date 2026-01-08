@@ -8,7 +8,7 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "aiosqlite>=0.19.0",
     "httpx>=0.25.0",
-    "google-generativeai>=0.3.0",
+    "google-genai>=1.0.0",
     "apscheduler>=3.10.0",
     "python-dotenv>=1.0.0",
     "pydantic>=2.0.0",
@@ -50,6 +50,8 @@ target-version = ["py311"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 
 [tool.mypy]

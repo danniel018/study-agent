@@ -2,7 +2,7 @@
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from study_agent.infrastructure.database.engine import Base
 
@@ -11,6 +11,7 @@ from study_agent.infrastructure.database.engine import Base
 def event_loop():
     """Create an event loop for the test session."""
     import asyncio
+
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
@@ -23,25 +24,25 @@ async def test_db():
         "sqlite+aiosqlite:///:memory:",
         echo=False,
     )
-    
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     yield engine
-    
+
     await engine.dispose()
 
 
 @pytest_asyncio.fixture
 async def test_session(test_db):
     """Create a test database session."""
-    AsyncTestSession = async_sessionmaker(
+    async_test_session = async_sessionmaker(
         test_db,
         class_=AsyncSession,
         expire_on_commit=False,
     )
-    
-    async with AsyncTestSession() as session:
+
+    async with async_test_session() as session:
         yield session
 
 

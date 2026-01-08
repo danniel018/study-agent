@@ -1,16 +1,17 @@
 """SQLAlchemy database models."""
 
 from datetime import datetime
+
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
     BigInteger,
     Boolean,
+    Column,
     DateTime,
     Float,
-    Text,
     ForeignKey,
+    Integer,
+    String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
@@ -20,9 +21,9 @@ from study_agent.infrastructure.database.engine import Base
 
 class UserModel(Base):
     """User table model."""
-    
+
     __tablename__ = "users"
-    
+
     id = Column(Integer, primary_key=True)
     telegram_id = Column(BigInteger, unique=True, nullable=False, index=True)
     username = Column(String, nullable=True)
@@ -32,7 +33,7 @@ class UserModel(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    
+
     # Relationships
     repositories = relationship("RepositoryModel", back_populates="user")
     study_sessions = relationship("StudySessionModel", back_populates="user")
@@ -42,9 +43,9 @@ class UserModel(Base):
 
 class RepositoryModel(Base):
     """Repository table model."""
-    
+
     __tablename__ = "repositories"
-    
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     repo_url = Column(String, nullable=False)
@@ -53,21 +54,19 @@ class RepositoryModel(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     last_synced_at = Column(DateTime, nullable=True)
-    
+
     # Relationships
     user = relationship("UserModel", back_populates="repositories")
     topics = relationship("TopicModel", back_populates="repository")
-    
-    __table_args__ = (
-        UniqueConstraint("user_id", "repo_owner", "repo_name", name="uq_user_repo"),
-    )
+
+    __table_args__ = (UniqueConstraint("user_id", "repo_owner", "repo_name", name="uq_user_repo"),)
 
 
 class TopicModel(Base):
     """Topic table model."""
-    
+
     __tablename__ = "topics"
-    
+
     id = Column(Integer, primary_key=True)
     repository_id = Column(Integer, ForeignKey("repositories.id"), nullable=False, index=True)
     title = Column(String, nullable=False)
@@ -75,7 +74,7 @@ class TopicModel(Base):
     content = Column(Text, nullable=False)
     content_hash = Column(String, nullable=False)
     last_synced_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    
+
     # Relationships
     repository = relationship("RepositoryModel", back_populates="topics")
     study_sessions = relationship("StudySessionModel", back_populates="topic")
@@ -84,17 +83,19 @@ class TopicModel(Base):
 
 class StudySessionModel(Base):
     """Study session table model."""
-    
+
     __tablename__ = "study_sessions"
-    
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     topic_id = Column(Integer, ForeignKey("topics.id"), nullable=False, index=True)
     session_type = Column(String, nullable=False)  # 'scheduled', 'manual'
     started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
-    status = Column(String, default="in_progress", nullable=False)  # 'in_progress', 'completed', 'cancelled'
-    
+    status = Column(
+        String, default="in_progress", nullable=False
+    )  # 'in_progress', 'completed', 'cancelled'
+
     # Relationships
     user = relationship("UserModel", back_populates="study_sessions")
     topic = relationship("TopicModel", back_populates="study_sessions")
@@ -103,9 +104,9 @@ class StudySessionModel(Base):
 
 class AssessmentModel(Base):
     """Assessment table model."""
-    
+
     __tablename__ = "assessments"
-    
+
     id = Column(Integer, primary_key=True)
     session_id = Column(Integer, ForeignKey("study_sessions.id"), nullable=False, index=True)
     question = Column(Text, nullable=False)
@@ -115,16 +116,16 @@ class AssessmentModel(Base):
     llm_feedback = Column(Text, nullable=True)
     score = Column(Float, nullable=True)  # 0.0 to 1.0
     answered_at = Column(DateTime, nullable=True)
-    
+
     # Relationships
     session = relationship("StudySessionModel", back_populates="assessments")
 
 
 class PerformanceMetricsModel(Base):
     """Performance metrics table model."""
-    
+
     __tablename__ = "performance_metrics"
-    
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     topic_id = Column(Integer, ForeignKey("topics.id"), nullable=False, index=True)
@@ -137,21 +138,19 @@ class PerformanceMetricsModel(Base):
     retention_score = Column(Float, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    
+
     # Relationships
     user = relationship("UserModel", back_populates="performance_metrics")
     topic = relationship("TopicModel", back_populates="performance_metrics")
-    
-    __table_args__ = (
-        UniqueConstraint("user_id", "topic_id", name="uq_user_topic_metrics"),
-    )
+
+    __table_args__ = (UniqueConstraint("user_id", "topic_id", name="uq_user_topic_metrics"),)
 
 
 class ScheduleConfigModel(Base):
     """Schedule configuration table model."""
-    
+
     __tablename__ = "schedule_config"
-    
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
     is_enabled = Column(Boolean, default=True, nullable=False)
@@ -159,6 +158,6 @@ class ScheduleConfigModel(Base):
     preferred_time = Column(String, nullable=True)  # HH:MM format
     days_of_week = Column(String, nullable=True)  # JSON array for weekly
     questions_per_session = Column(Integer, default=5, nullable=False)
-    
+
     # Relationships
     user = relationship("UserModel", back_populates="schedule_config")

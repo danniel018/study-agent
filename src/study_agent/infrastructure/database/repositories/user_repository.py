@@ -1,41 +1,40 @@
 """User repository implementation."""
 
-from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from study_agent.infrastructure.database.models import UserModel, ScheduleConfigModel
-from study_agent.domain.models.user import User
 from study_agent.config.settings import settings
+from study_agent.domain.models.user import User
+from study_agent.infrastructure.database.models import ScheduleConfigModel, UserModel
 
 
 class UserRepository:
     """Repository for user data access."""
-    
+
     def __init__(self, session: AsyncSession):
         """Initialize user repository.
-        
+
         Args:
             session: Database session
         """
         self.session = session
-    
-    async def get_by_telegram_id(self, telegram_id: int) -> Optional[User]:
+
+    async def get_by_telegram_id(self, telegram_id: int) -> User | None:
         """Get user by Telegram ID.
-        
+
         Args:
             telegram_id: Telegram user ID
-            
+
         Returns:
             User if found, None otherwise
         """
         stmt = select(UserModel).where(UserModel.telegram_id == telegram_id)
         result = await self.session.execute(stmt)
         user_model = result.scalar_one_or_none()
-        
+
         if not user_model:
             return None
-        
+
         return User(
             id=user_model.id,
             telegram_id=user_model.telegram_id,
@@ -47,24 +46,24 @@ class UserRepository:
             updated_at=user_model.updated_at,
             is_active=user_model.is_active,
         )
-    
+
     async def create(
         self,
         telegram_id: int,
         first_name: str,
-        username: Optional[str] = None,
-        last_name: Optional[str] = None,
+        username: str | None = None,
+        last_name: str | None = None,
         timezone: str = "UTC",
     ) -> User:
         """Create a new user.
-        
+
         Args:
             telegram_id: Telegram user ID
             first_name: User's first name
             username: User's username
             last_name: User's last name
             timezone: User's timezone
-            
+
         Returns:
             Created user
         """
@@ -77,7 +76,7 @@ class UserRepository:
         )
         self.session.add(user_model)
         await self.session.flush()
-        
+
         # Create default schedule config
         schedule_config = ScheduleConfigModel(
             user_id=user_model.id,
@@ -88,7 +87,7 @@ class UserRepository:
         )
         self.session.add(schedule_config)
         await self.session.commit()
-        
+
         return User(
             id=user_model.id,
             telegram_id=user_model.telegram_id,

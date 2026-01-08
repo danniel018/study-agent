@@ -1,6 +1,6 @@
 """Database engine configuration."""
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 
 from study_agent.config.settings import settings
@@ -25,7 +25,7 @@ Base = declarative_base()
 
 async def get_session() -> AsyncSession:
     """Get database session.
-    
+
     Yields:
         AsyncSession: Database session
     """

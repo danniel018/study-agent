@@ -7,7 +7,7 @@ from datetime import datetime
 @dataclass
 class Topic:
     """Topic entity representing a study topic from a repository."""
-    
+
     id: int
     repository_id: int
     title: str

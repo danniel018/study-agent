@@ -1,10 +1,10 @@
 """Command handlers for the Telegram bot."""
 
 import logging
-from aiogram import Router, F
+
+from aiogram import Dispatcher, Router
 from aiogram.filters import Command
 from aiogram.types import Message
-from aiogram import Dispatcher
 
 from study_agent.infrastructure.database.engine import AsyncSessionLocal
 from study_agent.infrastructure.database.repositories.user_repository import UserRepository
@@ -17,16 +17,16 @@ router = Router()
 @router.message(Command("start"))
 async def cmd_start(message: Message) -> None:
     """Handle /start command.
-    
+
     Args:
         message: Incoming message
     """
     async with AsyncSessionLocal() as session:
         user_repo = UserRepository(session)
-        
+
         # Check if user exists
         user = await user_repo.get_by_telegram_id(message.from_user.id)
-        
+
         if not user:
             # Create new user
             user = await user_repo.create(
@@ -36,7 +36,7 @@ async def cmd_start(message: Message) -> None:
                 last_name=message.from_user.last_name,
             )
             logger.info(f"New user created: {user.telegram_id}")
-            
+
             welcome_text = (
                 f"👋 Welcome to Study Agent, {user.first_name}!\n\n"
                 "I'm here to help you study and retain knowledge through "
@@ -53,14 +53,14 @@ async def cmd_start(message: Message) -> None:
                 "Ready to continue your learning journey?\n\n"
                 "Use /help to see all available commands."
             )
-    
+
     await message.answer(welcome_text)
 
 
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
     """Handle /help command.
-    
+
     Args:
         message: Incoming message
     """
@@ -90,7 +90,7 @@ async def cmd_help(message: Message) -> None:
 @router.message(Command("testquiz"))
 async def cmd_testquiz(message: Message) -> None:
     """Handle /testquiz command for testing purposes.
-    
+
     Args:
         message: Incoming message
     """
@@ -101,23 +101,14 @@ async def cmd_testquiz(message: Message) -> None:
         "Generating quiz questions..."
     )
     await message.answer(test_text)
-    
+
     # Mock quiz questions
     mock_questions = [
-        {
-            "question": "What is the capital of France?",
-            "answer": "Paris"
-        },
-        {
-            "question": "What is 2 + 2?",
-            "answer": "4"
-        },
-        {
-            "question": "What color is the sky?",
-            "answer": "Blue"
-        }
+        {"question": "What is the capital of France?", "answer": "Paris"},
+        {"question": "What is 2 + 2?", "answer": "4"},
+        {"question": "What color is the sky?", "answer": "Blue"},
     ]
-    
+
     quiz_text = (
         "📝 <b>Quick Test Quiz</b>\n\n"
         f"Question 1/{len(mock_questions)}:\n"
@@ -129,7 +120,7 @@ async def cmd_testquiz(message: Message) -> None:
 
 def register_handlers(dp: Dispatcher) -> None:
     """Register all command handlers.
-    
+
     Args:
         dp: Dispatcher instance
     """
