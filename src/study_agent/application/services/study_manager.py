@@ -347,7 +347,7 @@ class StudyManager:
         Returns:
             List of topic IDs due for review
         """
-        now = datetime.utcnow()
+        now = datetime.now()
 
         stmt = select(PerformanceMetricsModel).where(
             PerformanceMetricsModel.user_id == user_id,
