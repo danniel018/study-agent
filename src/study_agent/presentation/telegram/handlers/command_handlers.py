@@ -464,10 +464,24 @@ async def process_topic_selection(callback: CallbackQuery, state: FSMContext) ->
         async with AsyncSessionLocal() as session:
             topic_repository = TopicRepository(session)
             gemini_client = GeminiClient()
+            
+            # Create all necessary repositories
+            from study_agent.infrastructure.database.repositories import (
+                AssessmentRepository,
+                PerformanceMetricsRepository,
+                StudySessionRepository,
+            )
+            
+            study_session_repository = StudySessionRepository(session)
+            assessment_repository = AssessmentRepository(session)
+            performance_metrics_repository = PerformanceMetricsRepository(session)
+            
             study_manager = StudyManager(
-                session=session,
                 gemini_client=gemini_client,
                 topic_repository=topic_repository,
+                study_session_repository=study_session_repository,
+                assessment_repository=assessment_repository,
+                performance_metrics_repository=performance_metrics_repository,
             )
 
             # Get topic info
@@ -555,10 +569,24 @@ async def process_answer(message: Message, state: FSMContext) -> None:
         async with AsyncSessionLocal() as session:
             topic_repository = TopicRepository(session)
             gemini_client = GeminiClient()
+            
+            # Create all necessary repositories
+            from study_agent.infrastructure.database.repositories import (
+                AssessmentRepository,
+                PerformanceMetricsRepository,
+                StudySessionRepository,
+            )
+            
+            study_session_repository = StudySessionRepository(session)
+            assessment_repository = AssessmentRepository(session)
+            performance_metrics_repository = PerformanceMetricsRepository(session)
+            
             study_manager = StudyManager(
-                session=session,
                 gemini_client=gemini_client,
                 topic_repository=topic_repository,
+                study_session_repository=study_session_repository,
+                assessment_repository=assessment_repository,
+                performance_metrics_repository=performance_metrics_repository,
             )
 
             # Evaluate answer
