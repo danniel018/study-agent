@@ -1,6 +1,6 @@
 """Repository repository implementation."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -128,5 +128,5 @@ class RepositoryRepository:
         model = result.scalar_one_or_none()
 
         if model:
-            model.last_synced_at = datetime.utcnow()
+            model.last_synced_at = datetime.now(UTC)
             await self.session.commit()

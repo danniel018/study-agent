@@ -1,6 +1,6 @@
 """SQLAlchemy database models."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     BigInteger,
@@ -31,8 +31,13 @@ class UserModel(Base):
     last_name = Column(String, nullable=True)
     timezone = Column(String, default="UTC", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
     # Relationships
     repositories = relationship("RepositoryModel", back_populates="user")
@@ -52,7 +57,7 @@ class RepositoryModel(Base):
     repo_owner = Column(String, nullable=False)
     repo_name = Column(String, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     last_synced_at = Column(DateTime, nullable=True)
 
     # Relationships
@@ -73,7 +78,7 @@ class TopicModel(Base):
     file_path = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     content_hash = Column(String, nullable=False)
-    last_synced_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_synced_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
     # Relationships
     repository = relationship("RepositoryModel", back_populates="topics")
@@ -90,7 +95,7 @@ class StudySessionModel(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     topic_id = Column(Integer, ForeignKey("topics.id"), nullable=False, index=True)
     session_type = Column(String, nullable=False)  # 'scheduled', 'manual'
-    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     completed_at = Column(DateTime, nullable=True)
     status = Column(
         String, default="in_progress", nullable=False
@@ -136,8 +141,13 @@ class PerformanceMetricsModel(Base):
     last_studied_at = Column(DateTime, nullable=True)
     next_review_at = Column(DateTime, nullable=True)
     retention_score = Column(Float, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
     # Relationships
     user = relationship("UserModel", back_populates="performance_metrics")
