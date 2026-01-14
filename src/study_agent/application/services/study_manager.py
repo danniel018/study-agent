@@ -1,10 +1,7 @@
 """Study manager service for session orchestration."""
 
 import logging
-from datetime import datetime, timedelta
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import UTC, datetime, timedelta
 
 from study_agent.config.constants import (
     EXCELLENT_MULTIPLIER,
@@ -16,10 +13,14 @@ from study_agent.config.constants import (
 from study_agent.domain.models.assessment import Assessment
 from study_agent.domain.models.study_session import StudySession
 from study_agent.infrastructure.clients.gemini_client import GeminiClient
-from study_agent.infrastructure.database.models import (
-    AssessmentModel,
-    PerformanceMetricsModel,
-    StudySessionModel,
+from study_agent.infrastructure.database.repositories.assessment_repository import (
+    AssessmentRepository,
+)
+from study_agent.infrastructure.database.repositories.performance_metrics_repository import (
+    PerformanceMetricsRepository,
+)
+from study_agent.infrastructure.database.repositories.study_session_repository import (
+    StudySessionRepository,
 )
 from study_agent.infrastructure.database.repositories.topic_repository import TopicRepository
 
@@ -31,20 +32,26 @@ class StudyManager:
 
     def __init__(
         self,
-        session: AsyncSession,
         gemini_client: GeminiClient,
         topic_repository: TopicRepository,
+        study_session_repository: StudySessionRepository,
+        assessment_repository: AssessmentRepository,
+        performance_metrics_repository: PerformanceMetricsRepository,
     ):
         """Initialize study manager.
 
         Args:
-            session: Database session
             gemini_client: Gemini LLM client
             topic_repository: Topic repository
+            study_session_repository: Study session repository
+            assessment_repository: Assessment repository
+            performance_metrics_repository: Performance metrics repository
         """
-        self.session = session
         self.gemini_client = gemini_client
         self.topic_repository = topic_repository
+        self.study_session_repository = study_session_repository
+        self.assessment_repository = assessment_repository
+        self.performance_metrics_repository = performance_metrics_repository
 
     async def create_study_session(
         self,
@@ -62,28 +69,15 @@ class StudyManager:
         Returns:
             Created study session
         """
-        session_model = StudySessionModel(
+        session = await self.study_session_repository.create(
             user_id=user_id,
             topic_id=topic_id,
             session_type=session_type,
-            started_at=datetime.utcnow(),
-            status="in_progress",
         )
-        self.session.add(session_model)
-        await self.session.commit()
-        await self.session.refresh(session_model)
 
-        logger.info(f"Created study session {session_model.id} for user {user_id}")
+        logger.info(f"Created study session {session.id} for user {user_id}")
 
-        return StudySession(
-            id=session_model.id,
-            user_id=session_model.user_id,
-            topic_id=session_model.topic_id,
-            session_type=session_model.session_type,  # type: ignore
-            started_at=session_model.started_at,
-            status=session_model.status,  # type: ignore
-            completed_at=session_model.completed_at,
-        )
+        return session
 
     async def generate_quiz_questions(
         self,
@@ -100,12 +94,12 @@ class StudyManager:
             List of assessments with questions
         """
         # Get session
-        stmt = select(StudySessionModel).where(StudySessionModel.id == session_id)
-        result = await self.session.execute(stmt)
-        session_model = result.scalar_one()
+        session = await self.study_session_repository.get_by_id(session_id)
+        if not session:
+            raise ValueError("Study session not found")
 
         # Get topic
-        topic = await self.topic_repository.get_by_id(session_model.topic_id)
+        topic = await self.topic_repository.get_by_id(session.topic_id)
         if not topic:
             raise ValueError("Topic not found")
 
@@ -121,30 +115,14 @@ class StudyManager:
         # Create assessment records
         assessments = []
         for q in questions:
-            assessment_model = AssessmentModel(
+            assessment = await self.assessment_repository.create(
                 session_id=session_id,
                 question=q["question"],
                 correct_answer=q["answer"],
             )
-            self.session.add(assessment_model)
-            assessments.append(assessment_model)
+            assessments.append(assessment)
 
-        await self.session.commit()
-
-        return [
-            Assessment(
-                id=a.id,
-                session_id=a.session_id,
-                question=a.question,
-                user_answer=a.user_answer,
-                correct_answer=a.correct_answer,
-                is_correct=a.is_correct,
-                llm_feedback=a.llm_feedback,
-                score=a.score,
-                answered_at=a.answered_at,
-            )
-            for a in assessments
-        ]
+        return assessments
 
     async def evaluate_answer(
         self,
@@ -160,17 +138,15 @@ class StudyManager:
         Returns:
             Evaluation result with score and feedback
         """
-        # Get assessment and topic
-        stmt = select(AssessmentModel).where(AssessmentModel.id == assessment_id)
-        result = await self.session.execute(stmt)
-        assessment = result.scalar_one()
+        # Get assessment
+        assessment = await self.assessment_repository.get_by_id(assessment_id)
+        if not assessment:
+            raise ValueError("Assessment not found")
 
         # Get session and topic
-        session_stmt = select(StudySessionModel).where(
-            StudySessionModel.id == assessment.session_id
-        )
-        session_result = await self.session.execute(session_stmt)
-        session = session_result.scalar_one()
+        session = await self.study_session_repository.get_by_id(assessment.session_id)
+        if not session:
+            raise ValueError("Study session not found")
 
         topic = await self.topic_repository.get_by_id(session.topic_id)
 
@@ -183,13 +159,13 @@ class StudyManager:
         )
 
         # Update assessment
-        assessment.user_answer = user_answer
-        assessment.score = evaluation["score"]
-        assessment.is_correct = evaluation["is_correct"]
-        assessment.llm_feedback = evaluation["feedback"]
-        assessment.answered_at = datetime.utcnow()
-
-        await self.session.commit()
+        await self.assessment_repository.update_evaluation(
+            assessment_id=assessment_id,
+            user_answer=user_answer,
+            score=evaluation["score"],
+            is_correct=evaluation["is_correct"],
+            llm_feedback=evaluation["feedback"],
+        )
 
         logger.info(f"Evaluated assessment {assessment_id}: score={evaluation['score']}")
 
@@ -205,14 +181,12 @@ class StudyManager:
             Average score for the session
         """
         # Get session
-        stmt = select(StudySessionModel).where(StudySessionModel.id == session_id)
-        result = await self.session.execute(stmt)
-        session = result.scalar_one()
+        session = await self.study_session_repository.get_by_id(session_id)
+        if not session:
+            raise ValueError("Study session not found")
 
         # Get assessments
-        assess_stmt = select(AssessmentModel).where(AssessmentModel.session_id == session_id)
-        assess_result = await self.session.execute(assess_stmt)
-        assessments = assess_result.scalars().all()
+        assessments = await self.assessment_repository.get_by_session(session_id)
 
         # Calculate average score
         answered_assessments = [a for a in assessments if a.score is not None]
@@ -222,8 +196,11 @@ class StudyManager:
             avg_score = sum(a.score for a in answered_assessments) / len(answered_assessments)
 
         # Update session
-        session.status = "completed"
-        session.completed_at = datetime.now()
+        await self.study_session_repository.update_status(
+            session_id=session_id,
+            status="completed",
+            completed_at=datetime.now(UTC),
+        )
 
         # Update or create performance metrics
         await self._update_performance_metrics(
@@ -232,8 +209,6 @@ class StudyManager:
             score=avg_score,
             num_questions=len(answered_assessments),
         )
-
-        await self.session.commit()
 
         logger.info(f"Completed session {session_id}: avg_score={avg_score:.2f}")
 
@@ -254,44 +229,33 @@ class StudyManager:
             score: Session score (0.0-1.0)
             num_questions: Number of questions answered
         """
-        # Get or create performance metrics
-        stmt = select(PerformanceMetricsModel).where(
-            PerformanceMetricsModel.user_id == user_id,
-            PerformanceMetricsModel.topic_id == topic_id,
+        # Get existing metrics
+        metrics = await self.performance_metrics_repository.get_by_user_and_topic(
+            user_id=user_id,
+            topic_id=topic_id,
         )
-        result = await self.session.execute(stmt)
-        metrics = result.scalar_one_or_none()
-
-        if not metrics:
-            metrics = PerformanceMetricsModel(
-                user_id=user_id,
-                topic_id=topic_id,
-                total_sessions=0,
-                total_correct=0,
-                total_questions=0,
-                average_score=0.0,
-            )
-            self.session.add(metrics)
-
-        # Update metrics
-        metrics.total_sessions += 1
-        metrics.total_questions += num_questions
-        metrics.total_correct += int(num_questions * score)
-        metrics.average_score = (
-            metrics.average_score * (metrics.total_sessions - 1) + score
-        ) / metrics.total_sessions
-        metrics.last_studied_at = datetime.now()
 
         # Calculate next review date using spaced repetition
+        last_interval_days = INITIAL_INTERVAL_DAYS
+        if metrics and metrics.last_studied_at and metrics.next_review_at:
+            last_interval_days = self._get_last_interval_days(
+                metrics.last_studied_at, metrics.next_review_at
+            )
+
         next_review = self._calculate_next_review(
             score=score,
-            last_interval_days=self._get_last_interval_days(
-                metrics.last_studied_at, metrics.next_review_at
-            ),
+            last_interval_days=last_interval_days,
         )
-        metrics.next_review_at = next_review
 
-        await self.session.commit()
+        # Update metrics
+        await self.performance_metrics_repository.update_after_session(
+            user_id=user_id,
+            topic_id=topic_id,
+            score=score,
+            num_questions=num_questions,
+            last_studied_at=datetime.now(UTC),
+            next_review_at=next_review,
+        )
 
     def _calculate_next_review(
         self,
@@ -317,7 +281,7 @@ class StudyManager:
             # Poor performance: reset to initial interval
             next_interval = INITIAL_INTERVAL_DAYS
 
-        return datetime.utcnow() + timedelta(days=next_interval)
+        return datetime.now(UTC) + timedelta(days=next_interval)
 
     def _get_last_interval_days(
         self,
@@ -347,13 +311,7 @@ class StudyManager:
         Returns:
             List of topic IDs due for review
         """
-        now = datetime.now()
-
-        stmt = select(PerformanceMetricsModel).where(
-            PerformanceMetricsModel.user_id == user_id,
-            PerformanceMetricsModel.next_review_at <= now,
+        return await self.performance_metrics_repository.get_topics_for_review(
+            user_id=user_id,
+            current_time=datetime.now(UTC),
         )
-        result = await self.session.execute(stmt)
-        metrics = result.scalars().all()
-
-        return [m.topic_id for m in metrics]
