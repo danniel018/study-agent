@@ -1,6 +1,6 @@
 """Assessment repository implementation."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -141,7 +141,7 @@ class AssessmentRepository:
         model.score = score
         model.is_correct = is_correct
         model.llm_feedback = llm_feedback
-        model.answered_at = datetime.utcnow()
+        model.answered_at = datetime.now(UTC)
 
         await self.session.commit()
         await self.session.refresh(model)

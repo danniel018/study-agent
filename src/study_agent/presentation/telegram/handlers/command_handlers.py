@@ -12,6 +12,7 @@ from aiogram.types import (
     Message,
 )
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from study_agent.application.services.github_service import GitHubService
 from study_agent.application.services.study_manager import StudyManager
@@ -25,6 +26,11 @@ from study_agent.infrastructure.database.models import (
     PerformanceMetricsModel,
     RepositoryModel,
     StudySessionModel,
+)
+from study_agent.infrastructure.database.repositories import (
+    AssessmentRepository,
+    PerformanceMetricsRepository,
+    StudySessionRepository,
 )
 from study_agent.infrastructure.database.repositories.repository_repository import (
     RepositoryRepository,
@@ -41,6 +47,30 @@ router = Router()
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
+
+
+def create_study_manager(session: AsyncSession) -> StudyManager:
+    """Create a StudyManager instance with all dependencies.
+
+    Args:
+        session: Database session
+
+    Returns:
+        Configured StudyManager instance
+    """
+    topic_repository = TopicRepository(session)
+    gemini_client = GeminiClient()
+    study_session_repository = StudySessionRepository(session)
+    assessment_repository = AssessmentRepository(session)
+    performance_metrics_repository = PerformanceMetricsRepository(session)
+
+    return StudyManager(
+        gemini_client=gemini_client,
+        topic_repository=topic_repository,
+        study_session_repository=study_session_repository,
+        assessment_repository=assessment_repository,
+        performance_metrics_repository=performance_metrics_repository,
+    )
 
 
 async def get_user_id_from_telegram(telegram_id: int) -> int | None:
@@ -463,26 +493,7 @@ async def process_topic_selection(callback: CallbackQuery, state: FSMContext) ->
     try:
         async with AsyncSessionLocal() as session:
             topic_repository = TopicRepository(session)
-            gemini_client = GeminiClient()
-            
-            # Create all necessary repositories
-            from study_agent.infrastructure.database.repositories import (
-                AssessmentRepository,
-                PerformanceMetricsRepository,
-                StudySessionRepository,
-            )
-            
-            study_session_repository = StudySessionRepository(session)
-            assessment_repository = AssessmentRepository(session)
-            performance_metrics_repository = PerformanceMetricsRepository(session)
-            
-            study_manager = StudyManager(
-                gemini_client=gemini_client,
-                topic_repository=topic_repository,
-                study_session_repository=study_session_repository,
-                assessment_repository=assessment_repository,
-                performance_metrics_repository=performance_metrics_repository,
-            )
+            study_manager = create_study_manager(session)
 
             # Get topic info
             topic = await topic_repository.get_by_id(topic_id)
@@ -567,27 +578,7 @@ async def process_answer(message: Message, state: FSMContext) -> None:
 
     try:
         async with AsyncSessionLocal() as session:
-            topic_repository = TopicRepository(session)
-            gemini_client = GeminiClient()
-            
-            # Create all necessary repositories
-            from study_agent.infrastructure.database.repositories import (
-                AssessmentRepository,
-                PerformanceMetricsRepository,
-                StudySessionRepository,
-            )
-            
-            study_session_repository = StudySessionRepository(session)
-            assessment_repository = AssessmentRepository(session)
-            performance_metrics_repository = PerformanceMetricsRepository(session)
-            
-            study_manager = StudyManager(
-                gemini_client=gemini_client,
-                topic_repository=topic_repository,
-                study_session_repository=study_session_repository,
-                assessment_repository=assessment_repository,
-                performance_metrics_repository=performance_metrics_repository,
-            )
+            study_manager = create_study_manager(session)
 
             # Evaluate answer
             evaluation = await study_manager.evaluate_answer(

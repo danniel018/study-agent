@@ -1,7 +1,7 @@
 """Study manager service for session orchestration."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from study_agent.config.constants import (
     EXCELLENT_MULTIPLIER,
@@ -281,7 +281,7 @@ class StudyManager:
             # Poor performance: reset to initial interval
             next_interval = INITIAL_INTERVAL_DAYS
 
-        return datetime.utcnow() + timedelta(days=next_interval)
+        return datetime.now(UTC) + timedelta(days=next_interval)
 
     def _get_last_interval_days(
         self,

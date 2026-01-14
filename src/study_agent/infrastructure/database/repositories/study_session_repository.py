@@ -1,6 +1,6 @@
 """Study session repository implementation."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,7 +40,7 @@ class StudySessionRepository:
             user_id=user_id,
             topic_id=topic_id,
             session_type=session_type,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(UTC),
             status="in_progress",
         )
         self.session.add(session_model)
