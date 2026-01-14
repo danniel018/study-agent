@@ -1,6 +1,6 @@
 """Tests for performance metrics repository."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -114,7 +114,7 @@ class TestPerformanceMetricsRepository:
         self, performance_metrics_repository, user_in_db, topic_in_db
     ):
         """Test updating performance metrics after a session."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         next_review = now + timedelta(days=7)
 
         metrics = await performance_metrics_repository.update_after_session(
@@ -138,7 +138,7 @@ class TestPerformanceMetricsRepository:
         self, performance_metrics_repository, user_in_db, topic_in_db
     ):
         """Test updating performance metrics multiple times."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         next_review = now + timedelta(days=7)
 
         # First session
@@ -171,7 +171,7 @@ class TestPerformanceMetricsRepository:
         self, performance_metrics_repository, user_in_db, topic_in_db
     ):
         """Test getting topics due for review."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         past_review = now - timedelta(days=1)
 
         # Create metrics with past review date
@@ -197,7 +197,7 @@ class TestPerformanceMetricsRepository:
         self, performance_metrics_repository, user_in_db, topic_in_db
     ):
         """Test getting topics when none are due for review."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         future_review = now + timedelta(days=7)
 
         # Create metrics with future review date
@@ -222,7 +222,7 @@ class TestPerformanceMetricsRepository:
         self, performance_metrics_repository, user_in_db, topic_in_db
     ):
         """Test that update_after_session creates metrics if they don't exist."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         next_review = now + timedelta(days=7)
 
         # Verify metrics don't exist

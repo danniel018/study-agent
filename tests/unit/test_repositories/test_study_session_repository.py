@@ -105,7 +105,7 @@ class TestStudySessionRepository:
         self, study_session_repository, user_in_db, topic_in_db
     ):
         """Test updating study session status."""
-        from datetime import datetime
+        from datetime import UTC, datetime
 
         session = await study_session_repository.create(
             user_id=user_in_db.id,
@@ -113,7 +113,7 @@ class TestStudySessionRepository:
             session_type="manual",
         )
 
-        completed_at = datetime.now()
+        completed_at = datetime.now(UTC)
         updated = await study_session_repository.update_status(
             session_id=session.id,
             status="completed",

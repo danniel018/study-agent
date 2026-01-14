@@ -199,7 +199,7 @@ class StudyManager:
         await self.study_session_repository.update_status(
             session_id=session_id,
             status="completed",
-            completed_at=datetime.now(),
+            completed_at=datetime.now(UTC),
         )
 
         # Update or create performance metrics
@@ -253,7 +253,7 @@ class StudyManager:
             topic_id=topic_id,
             score=score,
             num_questions=num_questions,
-            last_studied_at=datetime.now(),
+            last_studied_at=datetime.now(UTC),
             next_review_at=next_review,
         )
 
@@ -313,5 +313,5 @@ class StudyManager:
         """
         return await self.performance_metrics_repository.get_topics_for_review(
             user_id=user_id,
-            current_time=datetime.now(),
+            current_time=datetime.now(UTC),
         )
