@@ -124,10 +124,10 @@ class PerformanceMetricsRepository:
         """
         # Get or create metrics
         metrics = await self.get_by_user_and_topic(user_id, topic_id)
-        
+
         if not metrics:
             metrics = await self.create(user_id, topic_id)
-        
+
         # Get the model to update
         stmt = select(PerformanceMetricsModel).where(
             PerformanceMetricsModel.user_id == user_id,

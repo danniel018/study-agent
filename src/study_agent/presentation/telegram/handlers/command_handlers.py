@@ -624,7 +624,9 @@ async def process_answer(message: Message, state: FSMContext) -> None:
                 assessment_repository = AssessmentRepository(session)
                 next_assessment = await assessment_repository.get_by_id(assessments[next_idx])
                 if not next_assessment:
-                    await processing_msg.edit_text("❌ Error loading next question. Please try again with /study")
+                    await processing_msg.edit_text(
+                        "❌ Error loading next question. Please try again with /study"
+                    )
                     await state.clear()
                     return
 
