@@ -620,6 +620,7 @@ async def process_answer(message: Message, state: FSMContext) -> None:
                 )
 
                 # Get next question using assessment repository
+                # Note: assessments is a list of assessment IDs stored in state
                 assessment_repository = AssessmentRepository(session)
                 next_assessment = await assessment_repository.get_by_id(assessments[next_idx])
                 if not next_assessment:

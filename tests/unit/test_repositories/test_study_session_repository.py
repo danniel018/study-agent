@@ -1,5 +1,7 @@
 """Tests for study session repository."""
 
+from datetime import UTC, datetime
+
 import pytest
 import pytest_asyncio
 
@@ -105,8 +107,6 @@ class TestStudySessionRepository:
         self, study_session_repository, user_in_db, topic_in_db
     ):
         """Test updating study session status."""
-        from datetime import UTC, datetime
-
         session = await study_session_repository.create(
             user_id=user_in_db.id,
             topic_id=topic_in_db.id,
