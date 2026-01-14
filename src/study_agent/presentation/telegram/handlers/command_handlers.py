@@ -22,7 +22,6 @@ from study_agent.infrastructure.clients.gemini_client import GeminiClient
 from study_agent.infrastructure.clients.github_client import GitHubClient
 from study_agent.infrastructure.database.engine import AsyncSessionLocal
 from study_agent.infrastructure.database.models import (
-    AssessmentModel,
     PerformanceMetricsModel,
     RepositoryModel,
     StudySessionModel,
@@ -620,10 +619,13 @@ async def process_answer(message: Message, state: FSMContext) -> None:
                     correct_count=correct_count,
                 )
 
-                # Get next question
-                stmt = select(AssessmentModel).where(AssessmentModel.id == assessments[next_idx])
-                result = await session.execute(stmt)
-                next_assessment = result.scalar_one()
+                # Get next question using assessment repository
+                assessment_repository = AssessmentRepository(session)
+                next_assessment = await assessment_repository.get_by_id(assessments[next_idx])
+                if not next_assessment:
+                    await processing_msg.edit_text("❌ Error loading next question. Please try again with /study")
+                    await state.clear()
+                    return
 
                 await processing_msg.edit_text(
                     feedback_text + f"<b>Question {next_idx + 1}/{len(assessments)}:</b>\n"
