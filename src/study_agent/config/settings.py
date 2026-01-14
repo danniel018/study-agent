@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Gemini API Configuration
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.0-flash-exp"
+    GEMINI_MODEL: str = "gemini-3.0-pro"
 
     # Database Configuration
     DATABASE_URL: str = "sqlite+aiosqlite:///./study_agent.db"

@@ -223,7 +223,7 @@ class StudyManager:
 
         # Update session
         session.status = "completed"
-        session.completed_at = datetime.utcnow()
+        session.completed_at = datetime.now()
 
         # Update or create performance metrics
         await self._update_performance_metrics(
@@ -280,7 +280,7 @@ class StudyManager:
         metrics.average_score = (
             metrics.average_score * (metrics.total_sessions - 1) + score
         ) / metrics.total_sessions
-        metrics.last_studied_at = datetime.utcnow()
+        metrics.last_studied_at = datetime.now()
 
         # Calculate next review date using spaced repetition
         next_review = self._calculate_next_review(

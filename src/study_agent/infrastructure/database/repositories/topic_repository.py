@@ -46,7 +46,7 @@ class TopicRepository:
             file_path=file_path,
             content=content,
             content_hash=content_hash,
-            last_synced_at=datetime.utcnow(),
+            last_synced_at=datetime.now(),
         )
         self.session.add(topic_model)
         await self.session.commit()
