@@ -11,7 +11,7 @@ class Topic:
     id: int
     repository_id: int
     title: str
-    file_path: str
+    file_paths: list[str]
     content: str
     content_hash: str
     last_synced_at: datetime

@@ -55,19 +55,32 @@ class TestGitHubService:
         """Test successful repository sync."""
         # Mock GitHub client
         mock_github_client = MagicMock()
-        mock_github_client.fetch_all_topics = AsyncMock(
+        mock_github_client.get_repository_contents = AsyncMock(
+            return_value=[
+                {
+                    "path": "docs/test.md",
+                    "type": "blob",
+                    "url": "https://api.github.com/repos/testuser/testrepo/git/blobs/abcd1234",
+                }
+            ]
+        )
+        mock_github_client.get_file_content = AsyncMock(
+            return_value="This is a test file content " * 20
+        )
+        mock_gemini_client = MagicMock()
+        mock_gemini_client.get_repository_topics = AsyncMock(
             return_value=[
                 {
                     "title": "Test Topic",
-                    "file_path": "docs/test.md",
-                    "content": "Test content " * 20,
-                    "content_hash": "hash123",
+                    "description": "A topic for testing",
+                    "files": ["docs/test.md"],
                 }
             ]
         )
 
         service = GitHubService(
             github_client=mock_github_client,
+            gemini_client=mock_gemini_client,
             repo_repository=repo_repository,
             topic_repository=topic_repository,
         )
@@ -75,7 +88,7 @@ class TestGitHubService:
         topics_count = await service.sync_repository(repo_in_db.id)
 
         assert topics_count == 1
-        mock_github_client.fetch_all_topics.assert_called_once_with(
+        mock_github_client.get_repository_contents.assert_called_once_with(
             repo_in_db.repo_owner,
             repo_in_db.repo_name,
         )
@@ -84,9 +97,11 @@ class TestGitHubService:
     async def test_sync_repository_not_found(self, repo_repository, topic_repository):
         """Test sync with non-existent repository."""
         mock_github_client = MagicMock()
+        mock_gemini_client = MagicMock()
 
         service = GitHubService(
             github_client=mock_github_client,
+            gemini_client=mock_gemini_client,
             repo_repository=repo_repository,
             topic_repository=topic_repository,
         )
@@ -100,10 +115,19 @@ class TestGitHubService:
     async def test_sync_repository_no_topics(self, repo_repository, topic_repository, repo_in_db):
         """Test sync when no topics found."""
         mock_github_client = MagicMock()
-        mock_github_client.fetch_all_topics = AsyncMock(return_value=[])
+        mock_github_client.get_repository_contents = AsyncMock(
+            return_value=[
+                {"path": "README.md", "type": "blob"},
+            ]
+        )
+        mock_github_client.get_file_content = AsyncMock(return_value="# Project Readme")
+
+        mock_gemini_client = MagicMock()
+        mock_gemini_client.get_repository_topics = AsyncMock(return_value=[])
 
         service = GitHubService(
             github_client=mock_github_client,
+            gemini_client=mock_gemini_client,
             repo_repository=repo_repository,
             topic_repository=topic_repository,
         )
@@ -121,7 +145,7 @@ class TestGitHubService:
         await topic_repository.create(
             repository_id=repo_in_db.id,
             title="Old Topic",
-            file_path="old.md",
+            file_paths=["old.md"],
             content="Old content " * 20,
             content_hash="oldhash",
         )
@@ -131,25 +155,39 @@ class TestGitHubService:
 
         # Mock GitHub client with new topics
         mock_github_client = MagicMock()
-        mock_github_client.fetch_all_topics = AsyncMock(
+        mock_github_client.get_repository_contents = AsyncMock(
+            return_value=[
+                {"path": "README.md", "type": "blob"},
+                {"path": "new1.md", "type": "blob"},
+                {"path": "new2.md", "type": "blob"},
+            ]
+        )
+        mock_github_client.get_file_content = AsyncMock(
+            side_effect=lambda owner,
+            repo,
+            path: f"Content for {path} with enough words to pass the minimum topic length filter "
+            * 20
+        )
+
+        mock_gemini_client = MagicMock()
+        mock_gemini_client.get_repository_topics = AsyncMock(
             return_value=[
                 {
                     "title": "New Topic 1",
-                    "file_path": "new1.md",
-                    "content": "New content 1 " * 20,
-                    "content_hash": "newhash1",
+                    "description": "First new topic",
+                    "files": ["new1.md"],
                 },
                 {
                     "title": "New Topic 2",
-                    "file_path": "new2.md",
-                    "content": "New content 2 " * 20,
-                    "content_hash": "newhash2",
+                    "description": "Second new topic",
+                    "files": ["new2.md"],
                 },
             ]
         )
 
         service = GitHubService(
             github_client=mock_github_client,
+            gemini_client=mock_gemini_client,
             repo_repository=repo_repository,
             topic_repository=topic_repository,
         )

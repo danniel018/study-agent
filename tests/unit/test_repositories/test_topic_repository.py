@@ -42,7 +42,7 @@ def mock_topic_data():
     """Mock topic data for testing."""
     return {
         "title": "Test Topic",
-        "file_path": "docs/test.md",
+        "file_paths": ["docs/test.md"],
         "content": "This is test content for the topic. " * 20,
         "content_hash": "abc123hash",
     }
@@ -63,7 +63,7 @@ class TestTopicRepository:
         assert topic.id is not None
         assert topic.repository_id == repo_in_db.id
         assert topic.title == mock_topic_data["title"]
-        assert topic.file_path == mock_topic_data["file_path"]
+        assert topic.file_paths == mock_topic_data["file_paths"]
         assert topic.content == mock_topic_data["content"]
         assert topic.content_hash == mock_topic_data["content_hash"]
 
@@ -74,14 +74,14 @@ class TestTopicRepository:
         await topic_repository.create(
             repository_id=repo_in_db.id,
             title="Topic 1",
-            file_path="docs/topic1.md",
+            file_paths=["docs/topic1.md"],
             content="Content 1 " * 20,
             content_hash="hash1",
         )
         await topic_repository.create(
             repository_id=repo_in_db.id,
             title="Topic 2",
-            file_path="docs/topic2.md",
+            file_paths=["docs/topic2.md"],
             content="Content 2 " * 20,
             content_hash="hash2",
         )
@@ -133,14 +133,14 @@ class TestTopicRepository:
         await topic_repository.create(
             repository_id=repo_in_db.id,
             title="Topic 1",
-            file_path="docs/topic1.md",
+            file_paths=["docs/topic1.md"],
             content="Content 1 " * 20,
             content_hash="hash1",
         )
         await topic_repository.create(
             repository_id=repo_in_db.id,
             title="Topic 2",
-            file_path="docs/topic2.md",
+            file_paths=["docs/topic2.md"],
             content="Content 2 " * 20,
             content_hash="hash2",
         )

@@ -1,14 +1,12 @@
 """GitHub API client."""
 
 import base64
-import hashlib
+import warnings
 from typing import Any
 
 import httpx
 
-from study_agent.config.constants import MIN_TOPIC_LENGTH_WORDS
 from study_agent.core.exceptions import RepositoryAccessError, RepositoryNotFoundError
-from study_agent.core.utils import count_words
 
 
 class GitHubClient:
@@ -31,23 +29,21 @@ class GitHubClient:
         self,
         owner: str,
         repo: str,
-        path: str = "",
     ) -> list[dict[str, Any]]:
-        """Get repository contents at a path.
+        """Get repository contents from tree recursively.
 
         Args:
             owner: Repository owner
             repo: Repository name
-            path: Path within repository (empty for root)
 
         Returns:
-            List of content items
+            List of repository items (files/directories)
 
         Raises:
             RepositoryNotFoundError: If repository not found
             RepositoryAccessError: If unable to access repository
         """
-        url = f"{self.base_url}/repos/{owner}/{repo}/contents/{path}"
+        url = f"{self.base_url}/repos/{owner}/{repo}/git/trees/main?recursive=1"
 
         async with httpx.AsyncClient() as client:
             try:
@@ -62,7 +58,7 @@ class GitHubClient:
                         f"Failed to fetch contents: HTTP {response.status_code}"
                     )
 
-                return response.json()
+                return response.json().get("tree", [])
             except httpx.TimeoutException:
                 raise RepositoryAccessError("Request timeout")
             except httpx.RequestError as e:
@@ -118,84 +114,34 @@ class GitHubClient:
         self,
         owner: str,
         repo: str,
-        path: str = "",
     ) -> list[str]:
         """Recursively list all markdown files in repository.
+
+        .. deprecated::
+            This method is deprecated. Use get_repository_contents() instead
+            and filter for markdown files directly from the tree response.
 
         Args:
             owner: Repository owner
             repo: Repository name
-            path: Starting path
 
         Returns:
             List of markdown file paths
         """
-        markdown_files = []
+        warnings.warn(
+            "list_markdown_files is deprecated. Use get_repository_contents() "
+            "and filter for .md files from the tree response instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         try:
-            contents = await self.get_repository_contents(owner, repo, path)
+            contents = await self.get_repository_contents(owner, repo)
         except (RepositoryNotFoundError, RepositoryAccessError):
             return []
 
-        for item in contents:
-            if item["type"] == "file" and item["name"].endswith(".md"):
-                markdown_files.append(item["path"])
-            elif item["type"] == "dir":
-                # Recursively scan directories
-                subdir_files = await self.list_markdown_files(owner, repo, item["path"])
-                markdown_files.extend(subdir_files)
-
-        return markdown_files
-
-    async def fetch_all_topics(
-        self,
-        owner: str,
-        repo: str,
-    ) -> list[dict[str, str]]:
-        """Fetch all study topics from a repository.
-
-        This evaluates all markdown file content to extract topics.
-
-        Args:
-            owner: Repository owner
-            repo: Repository name
-
-        Returns:
-            List of topic dictionaries with 'title', 'content', 'file_path', 'content_hash'
-        """
-        markdown_files = await self.list_markdown_files(owner, repo)
-        topics = []
-
-        for file_path in markdown_files:
-            try:
-                content = await self.get_file_content(owner, repo, file_path)
-
-                # Skip files that are too short
-                if count_words(content) < MIN_TOPIC_LENGTH_WORDS:
-                    continue
-
-                # Use file name (without .md) as title
-                title = (
-                    file_path.split("/")[-1]
-                    .replace(".md", "")
-                    .replace("-", " ")
-                    .replace("_", " ")
-                    .title()
-                )
-
-                # Calculate content hash for change detection
-                content_hash = hashlib.sha256(content.encode()).hexdigest()
-
-                topics.append(
-                    {
-                        "title": title,
-                        "content": content,
-                        "file_path": file_path,
-                        "content_hash": content_hash,
-                    }
-                )
-            except (RepositoryNotFoundError, RepositoryAccessError):
-                # Skip files that can't be accessed
-                continue
-
-        return topics
+        return [
+            item["path"]
+            for item in contents
+            if item["type"] == "blob" and item["path"].endswith(".md")
+        ]

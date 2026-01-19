@@ -24,7 +24,7 @@ class TopicRepository:
         self,
         repository_id: int,
         title: str,
-        file_path: str,
+        file_paths: list[str],
         content: str,
         content_hash: str,
     ) -> Topic:
@@ -33,7 +33,7 @@ class TopicRepository:
         Args:
             repository_id: Repository ID
             title: Topic title
-            file_path: File path in repository
+            file_paths: File path in repository
             content: Topic content
             content_hash: Content hash for change detection
 
@@ -43,7 +43,7 @@ class TopicRepository:
         topic_model = TopicModel(
             repository_id=repository_id,
             title=title,
-            file_path=file_path,
+            file_paths=file_paths,
             content=content,
             content_hash=content_hash,
             last_synced_at=datetime.now(),
@@ -56,7 +56,7 @@ class TopicRepository:
             id=topic_model.id,
             repository_id=topic_model.repository_id,
             title=topic_model.title,
-            file_path=topic_model.file_path,
+            file_paths=topic_model.file_paths,
             content=topic_model.content,
             content_hash=topic_model.content_hash,
             last_synced_at=topic_model.last_synced_at,
@@ -80,7 +80,7 @@ class TopicRepository:
                 id=model.id,
                 repository_id=model.repository_id,
                 title=model.title,
-                file_path=model.file_path,
+                file_paths=model.file_paths,
                 content=model.content,
                 content_hash=model.content_hash,
                 last_synced_at=model.last_synced_at,
@@ -108,7 +108,7 @@ class TopicRepository:
             id=model.id,
             repository_id=model.repository_id,
             title=model.title,
-            file_path=model.file_path,
+            file_paths=model.file_paths,
             content=model.content,
             content_hash=model.content_hash,
             last_synced_at=model.last_synced_at,
@@ -134,7 +134,7 @@ class TopicRepository:
                 id=model.id,
                 repository_id=model.repository_id,
                 title=model.title,
-                file_path=model.file_path,
+                file_paths=model.file_paths,
                 content=model.content,
                 content_hash=model.content_hash,
                 last_synced_at=model.last_synced_at,

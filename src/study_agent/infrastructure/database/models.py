@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     Column,
@@ -75,7 +76,7 @@ class TopicModel(Base):
     id = Column(Integer, primary_key=True)
     repository_id = Column(Integer, ForeignKey("repositories.id"), nullable=False, index=True)
     title = Column(String, nullable=False)
-    file_path = Column(String, nullable=False)
+    file_paths = Column(JSON, nullable=False)
     content = Column(Text, nullable=False)
     content_hash = Column(String, nullable=False)
     last_synced_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)

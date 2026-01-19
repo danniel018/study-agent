@@ -1,8 +1,12 @@
 """GitHub service for repository operations."""
 
+import hashlib
 import logging
 
-from study_agent.core.exceptions import RepositoryError
+from study_agent.config.constants import MIN_TOPIC_LENGTH_WORDS
+from study_agent.core.exceptions import RepositoryError, RepositoryNotFoundError
+from study_agent.core.utils import count_words
+from study_agent.infrastructure.clients.gemini_client import GeminiClient
 from study_agent.infrastructure.clients.github_client import GitHubClient
 from study_agent.infrastructure.database.repositories.repository_repository import (
     RepositoryRepository,
@@ -18,6 +22,7 @@ class GitHubService:
     def __init__(
         self,
         github_client: GitHubClient,
+        gemini_client: GeminiClient,
         repo_repository: RepositoryRepository,
         topic_repository: TopicRepository,
     ):
@@ -29,6 +34,7 @@ class GitHubService:
             topic_repository: Topic data access
         """
         self.github_client = github_client
+        self.gemini_client = gemini_client
         self.repo_repository = repo_repository
         self.topic_repository = topic_repository
 
@@ -53,23 +59,70 @@ class GitHubService:
 
         try:
             # Fetch all topics from GitHub
-            github_topics = await self.github_client.fetch_all_topics(
+            repo_contents = await self.github_client.get_repository_contents(
                 repo.repo_owner,
                 repo.repo_name,
             )
 
-            logger.info(f"Found {len(github_topics)} topics in GitHub")
+            logger.info(f"Found {len(repo_contents)} items in GitHub")
+
+            files = [item for item in repo_contents if item["type"] == "blob"]
+
+            # main readme
+            readme = next(
+                (item["path"] for item in files if item["path"].lower() == "readme.md"), None
+            )
+            if readme:
+                readme_content = await self.github_client.get_file_content(
+                    repo.repo_owner,
+                    repo.repo_name,
+                    readme,
+                )
+
+            # get topics using LLM
+            llm_topics = await self.gemini_client.get_repository_topics(
+                readme_content=readme_content if readme else None,
+                file_list=[item["path"] for item in files],
+            )
+            topics = []
+            for topic in llm_topics:
+                sections = []
+                for file_path in topic["files"]:
+                    try:
+                        file_content = await self.github_client.get_file_content(
+                            repo.repo_owner,
+                            repo.repo_name,
+                            file_path,
+                        )
+                        if count_words(file_content) >= MIN_TOPIC_LENGTH_WORDS:
+                            ext = file_path.split(".")[-1].lower()
+                            sections.append(
+                                f"## File {file_path}\n```{ext}\n{file_content}\n```",
+                            )
+
+                    except RepositoryNotFoundError:
+                        logger.warning(f"File {file_path} not found, skipping for topic.")
+                        continue
+                if sections:
+                    topics.append(
+                        {
+                            "title": topic["title"],
+                            "content": "\n\n".join(sections),
+                            "file_paths": topic["files"],
+                            "content_hash": hashlib.sha256("".join(sections).encode()).hexdigest(),
+                        }
+                    )
 
             # Delete existing topics for this repository
             await self.topic_repository.delete_by_repository(repo_id)
 
             # Create new topics
             topics_created = 0
-            for topic_data in github_topics:
+            for topic_data in topics:
                 await self.topic_repository.create(
                     repository_id=repo_id,
                     title=topic_data["title"],
-                    file_path=topic_data["file_path"],
+                    file_paths=topic_data["file_paths"],
                     content=topic_data["content"],
                     content_hash=topic_data["content_hash"],
                 )
