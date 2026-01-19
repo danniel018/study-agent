@@ -11,6 +11,7 @@ from study_agent.core.exceptions import LLMServiceError
 
 logger = logging.getLogger(__name__)
 
+
 class GeminiClient:
     """Client for Google Gemini API."""
 

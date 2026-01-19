@@ -44,7 +44,7 @@ async def topic_in_db(test_session, repo_in_db):
     topic = await topic_repo.create(
         repository_id=repo_in_db.id,
         title="Test Topic",
-        file_path="docs/test.md",
+        file_paths=["docs/test.md"],
         content="This is test content for the topic. " * 20,
         content_hash="abc123hash",
     )
@@ -73,9 +73,7 @@ class TestAssessmentRepository:
     """Tests for AssessmentRepository."""
 
     @pytest.mark.asyncio
-    async def test_create_assessment(
-        self, assessment_repository, study_session_in_db
-    ):
+    async def test_create_assessment(self, assessment_repository, study_session_in_db):
         """Test creating a new assessment."""
         assessment = await assessment_repository.create(
             session_id=study_session_in_db.id,
@@ -115,9 +113,7 @@ class TestAssessmentRepository:
         assert found is None
 
     @pytest.mark.asyncio
-    async def test_get_by_session(
-        self, assessment_repository, study_session_in_db
-    ):
+    async def test_get_by_session(self, assessment_repository, study_session_in_db):
         """Test getting all assessments for a session."""
         # Create multiple assessments
         await assessment_repository.create(
@@ -131,17 +127,13 @@ class TestAssessmentRepository:
             correct_answer="Answer 2",
         )
 
-        assessments = await assessment_repository.get_by_session(
-            study_session_in_db.id
-        )
+        assessments = await assessment_repository.get_by_session(study_session_in_db.id)
 
         assert len(assessments) == 2
         assert all(a.session_id == study_session_in_db.id for a in assessments)
 
     @pytest.mark.asyncio
-    async def test_update_evaluation(
-        self, assessment_repository, study_session_in_db
-    ):
+    async def test_update_evaluation(self, assessment_repository, study_session_in_db):
         """Test updating assessment with evaluation results."""
         assessment = await assessment_repository.create(
             session_id=study_session_in_db.id,
@@ -164,13 +156,9 @@ class TestAssessmentRepository:
         assert updated.answered_at is not None
 
     @pytest.mark.asyncio
-    async def test_get_by_session_empty(
-        self, assessment_repository, study_session_in_db
-    ):
+    async def test_get_by_session_empty(self, assessment_repository, study_session_in_db):
         """Test getting assessments for session with no assessments."""
-        assessments = await assessment_repository.get_by_session(
-            study_session_in_db.id
-        )
+        assessments = await assessment_repository.get_by_session(study_session_in_db.id)
         assert assessments == []
 
     @pytest.mark.asyncio

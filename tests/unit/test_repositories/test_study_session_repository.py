@@ -43,7 +43,7 @@ async def topic_in_db(test_session, repo_in_db):
     topic = await topic_repo.create(
         repository_id=repo_in_db.id,
         title="Test Topic",
-        file_path="docs/test.md",
+        file_paths=["docs/test.md"],
         content="This is test content for the topic. " * 20,
         content_hash="abc123hash",
     )
@@ -60,9 +60,7 @@ class TestStudySessionRepository:
     """Tests for StudySessionRepository."""
 
     @pytest.mark.asyncio
-    async def test_create_study_session(
-        self, study_session_repository, user_in_db, topic_in_db
-    ):
+    async def test_create_study_session(self, study_session_repository, user_in_db, topic_in_db):
         """Test creating a new study session."""
         session = await study_session_repository.create(
             user_id=user_in_db.id,
@@ -103,9 +101,7 @@ class TestStudySessionRepository:
         assert found is None
 
     @pytest.mark.asyncio
-    async def test_update_status(
-        self, study_session_repository, user_in_db, topic_in_db
-    ):
+    async def test_update_status(self, study_session_repository, user_in_db, topic_in_db):
         """Test updating study session status."""
         session = await study_session_repository.create(
             user_id=user_in_db.id,

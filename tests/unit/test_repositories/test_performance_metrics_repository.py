@@ -43,7 +43,7 @@ async def topic_in_db(test_session, repo_in_db):
     topic = await topic_repo.create(
         repository_id=repo_in_db.id,
         title="Test Topic",
-        file_path="docs/test.md",
+        file_paths=["docs/test.md"],
         content="This is test content for the topic. " * 20,
         content_hash="abc123hash",
     )

@@ -22,6 +22,7 @@ def list_tables(conn: sqlite3.Connection) -> list[str]:
     cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
     return [row["name"] for row in cursor.fetchall()]
 
+
 def list_performance_metrics(conn: sqlite3.Connection, user_id: int) -> list[dict]:
     """List performance metrics for a given user."""
     cursor = conn.execute(
