@@ -13,13 +13,13 @@ class Settings(BaseSettings):
 
     # Gemini API Configuration
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-3.0-pro"
+    GEMINI_MODEL: str = "gemini-3.0-flash-preview"
 
     # Database Configuration
     DATABASE_URL: str = "sqlite+aiosqlite:///./study_agent.db"
 
     # Application Settings
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
     ENVIRONMENT: Literal["development", "production", "testing"] = "development"
 
     # Scheduler Settings
