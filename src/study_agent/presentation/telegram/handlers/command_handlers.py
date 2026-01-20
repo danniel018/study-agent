@@ -271,8 +271,10 @@ async def process_repo_url(message: Message, state: FSMContext) -> None:
 
             # Sync content from GitHub
             github_client = GitHubClient()
+            gemini_client = GeminiClient()
             github_service = GitHubService(
                 github_client=github_client,
+                gemini_client=gemini_client,
                 repo_repository=repo_repository,
                 topic_repository=topic_repository,
             )
@@ -334,7 +336,6 @@ async def cmd_listrepos(message: Message) -> None:
     async with AsyncSessionLocal() as session:
         repo_repository = RepositoryRepository(session)
         topic_repository = TopicRepository(session)
-
         repos = await repo_repository.get_by_user(user_id)
 
         if not repos:
